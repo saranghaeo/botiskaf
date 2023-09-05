@@ -3,9 +3,9 @@ module.exports = {
   ExpressServer: true, // If you wanted to make the website run or not
   DefaultPrefix: ".U", // Default prefix, Server Admins can change the prefix
   Port: 3000, //Which port website gonna be hosted
-  Token: process.env.Token || "MTE0ODU3OTAwMDM3NDAwMTcwNA.GSrTaQ.zRIHiotGcyhDwqlJmmY1So4WPGeemJI4bbbLds", // Discord Bot Token
-  ClientID: process.env.Discord_ClientID || "1148579000374001704", // Discord Client ID
-  ClientSecret: process.env.Discord_ClientSecret || "u3WgaSUn1NSVpuiLGEZ_dGCk-DEmX0Nz", // Discord Client Secret
+  Token: process.env.Token, // Discord Bot Token
+  ClientID: process.env.Discord_ClientID, // Discord Client ID
+  ClientSecret: process.env.Discord_ClientSecret, // Discord Client Secret
   Scopes: ["identify", "guilds", "applications.commands"], // Discord OAuth2 Scopes
   ServerDeafen: false, // If you want bot to stay deafened
   DefaultVolume: 100, // Sets the default volume of the bot, You can change this number anywhere from 1 to 9007199254740991 (JS Integer limit. If you do set it to that, you're a monster.)
