@@ -9,78 +9,45 @@ module.exports = {
     member: [],
   },
   aliases: ["command", "commands", "cmd"],
-  /**
-   *
-   * @param {import("../structures/DiscordMusicBot")} client
-   * @param {import("discord.js").Message} message
-   * @param {string[]} args
-   * @param {*} param3
-   */
   run: async (client, message, args, { GuildDB }) => {
-    let Commands = client.commands.map(
-      (cmd) =>
-        `\`${GuildDB ? GuildDB.prefix : client.botconfig.DefaultPrefix}${
-          cmd.name
-        }${cmd.usage ? " " + cmd.usage : ""}\` - ${cmd.description}`
-    );
+    const prefix = GuildDB ? GuildDB.prefix : client.botconfig.DefaultPrefix;
+    const commandName = args[0];
 
-    let Embed = new MessageEmbed()
-      .setAuthor(
-        `Commands of ${client.user.username}`,
-        client.botconfig.IconURL
-      )
-      .setColor(client.botconfig.EmbedColor)
-      .setFooter(
-        `To get info of each command type ${
-          GuildDB ? GuildDB.prefix : client.botconfig.DefaultPrefix
-        }help [Command] | Have a nice day!`
-      ).setDescription(`${Commands.join("\n")}
-  
-  Discord Music Bot Version: v${require("../package.json").version}
-  [✨ Support Server](${
-    client.botconfig.SupportServer
-  }) | [GitHub](https://github.com/SudhanPlayz/Discord-MusicBot) | [Dashboard](${
-      client.botconfig.Website
-    }) | By [SudhanPlayz](https://github.com/SudhanPlayz)`);
-    if (!args[0]) message.channel.send(Embed);
-    else {
-      let cmd =
-        client.commands.get(args[0]) ||
-        client.commands.find((x) => x.aliases && x.aliases.includes(args[0]));
-      if (!cmd)
-        return client.sendTime(
-          message.channel,
-          `❌ | Unable to find that command.`
-        );
+    // Если нет указанной команды, выводим список доступных команд
+    if (!commandName) {
+      const commandList = client.commands.map((cmd) => {
+        const usage = cmd.usage ? ` ${cmd.usage}` : "";
+        return `\`${prefix}${cmd.name}${usage}\` - ${cmd.description}`;
+      });
 
-      let embed = new MessageEmbed()
-        .setAuthor(`Command: ${cmd.name}`, client.botconfig.IconURL)
-        .setDescription(cmd.description)
+      const helpEmbed = new MessageEmbed()
+        .setAuthor(`Commands of ${client.user.username}`, client.botconfig.IconURL)
+        .setColor(client.botconfig.EmbedColor)
+        .setDescription(commandList.join("\n"))
+        .setFooter(`To get info of each command type ${prefix}help [Command]`);
+
+      message.channel.send(helpEmbed);
+    } else {
+      // Если указана конкретная команда, выводим информацию о ней
+      const command = client.commands.get(commandName) || client.commands.find((cmd) => cmd.aliases && cmd.aliases.includes(commandName))
+
+      if (!command) {
+        return client.sendTime(message.channel, `❌ | Unable to find that command.`)
+      }
+
+      const aliases = command.aliases.join(", ");
+      const usage = command.usage ? ` ${command.usage}` : ""
+
+      const commandEmbed = new MessageEmbed()
+        .setAuthor(`Command: ${command.name}`, client.botconfig.IconURL)
+        .setDescription(command.description)
         .setColor("GREEN")
-        //.addField("Name", cmd.name, true)
-        .addField("Aliases", `\`${cmd.aliases.join(", ")}\``, true)
-        .addField(
-          "Usage",
-          `\`${GuildDB ? GuildDB.prefix : client.botconfig.DefaultPrefix}${
-            cmd.name
-          }${cmd.usage ? " " + cmd.usage : ""}\``,
-          true
-        )
-        .addField(
-          "Permissions",
-          "Member: " +
-            cmd.permissions.member.join(", ") +
-            "\nBot: " +
-            cmd.permissions.channel.join(", "),
-          true
-        )
-        .setFooter(
-          `Prefix - ${
-            GuildDB ? GuildDB.prefix : client.botconfig.DefaultPrefix
-          }`
-        );
+        .addField("Aliases", `\`${aliases}\``, true)
+        .addField("Usage", `\`${prefix}${command.name}${usage}\``, true)
+        .addField("Permissions", `Member: ${command.permissions.member.join(", ")}\nBot: ${command.permissions.channel.join(", ")}`, true)
+        .setFooter(`Prefix - ${prefix}`)
 
-      message.channel.send(embed);
+      message.channel.send(commandEmbed)
     }
   },
 
@@ -89,76 +56,49 @@ module.exports = {
       {
         name: "command",
         description: "Get information on a specific command",
-        value: "command",
         type: 3,
         required: false,
       },
     ],
-    /**
-     *
-     * @param {import("../structures/DiscordMusicBot")} client
-     * @param {import("discord.js").Message} message
-     * @param {string[]} args
-     * @param {*} param3
-     */
-
     run: async (client, interaction, args, { GuildDB }) => {
-      let Commands = client.commands.map(
-        (cmd) =>
-          `\`${GuildDB ? GuildDB.prefix : client.botconfig.DefaultPrefix}${
-            cmd.name
-          }${cmd.usage ? " " + cmd.usage : ""}\` - ${cmd.description}`
-      );
+      const prefix = GuildDB ? GuildDB.prefix : client.botconfig.DefaultPrefix
+      const commandName = args && args[0] ? args[0].value : null
 
-      let Embed = new MessageEmbed()
-        .setAuthor(
-          `Commands of ${client.user.username}`,
-          client.botconfig.IconURL
-        )
-        .setColor(client.botconfig.EmbedColor)
-        .setDescription(`${Commands.join("\n")}`);
-      if (!args) return interaction.send(Embed);
-      else {
-        let cmd =
-          client.commands.get(args[0].value) ||
-          client.commands.find(
-            (x) => x.aliases && x.aliases.includes(args[0].value)
-          );
-        if (!cmd)
-          return client.sendTime(
-            interaction,
-            `❌ | Unable to find that command.`
-          );
+      // Если нет указанной команды, выводим список доступных команд
+      if (!commandName) {
+        const commandList = client.commands.map((cmd) => {
+          const usage = cmd.usage ? ` ${cmd.usage}` : ""
+          return `\`${prefix}${cmd.name}${usage}\` - ${cmd.description}`
+        });
 
-        let embed = new MessageEmbed()
-          .setAuthor(`Command: ${cmd.name}`, client.botconfig.IconURL)
-          .setDescription(cmd.description)
+        const helpEmbed = new MessageEmbed()
+          .setAuthor(`Commands of ${client.user.username}`, client.botconfig.IconURL)
+          .setColor(client.botconfig.EmbedColor)
+          .setDescription(commandList.join("\n"))
+
+        interaction.send(helpEmbed)
+      } else {
+        // Если указана конкретная команда, выводим информацию о ней
+        const command = client.commands.get(commandName) || client.commands.find((cmd) => cmd.aliases && cmd.aliases.includes(commandName))
+
+        if (!command) {
+          return client.sendTime(interaction, `❌ | Unable to find that command.`)
+        }
+
+        const aliases = command.aliases.join(", ")
+        const usage = command.usage ? ` ${command.usage}` : ""
+
+        const commandEmbed = new MessageEmbed()
+          .setAuthor(`Command: ${command.name}`, client.botconfig.IconURL)
+          .setDescription(command.description)
           .setColor("GREEN")
-          //.addField("Name", cmd.name, true)
-          .addField("Aliases", cmd.aliases.join(", "), true)
-          .addField(
-            "Usage",
-            `\`${GuildDB ? GuildDB.prefix : client.botconfig.DefaultPrefix}${
-              cmd.name
-            }\`${cmd.usage ? " " + cmd.usage : ""}`,
-            true
-          )
-          .addField(
-            "Permissions",
-            "Member: " +
-              cmd.permissions.member.join(", ") +
-              "\nBot: " +
-              cmd.permissions.channel.join(", "),
-            true
-          )
-          .setFooter(
-            `Prefix - ${
-              GuildDB ? GuildDB.prefix : client.botconfig.DefaultPrefix
-            }`
-          );
+          .addField("Aliases", aliases, true)
+          .addField("Usage", `\`${prefix}${command.name}${usage}\``, true)
+          .addField("Permissions", `Member: ${command.permissions.member.join(", ")}\nBot: ${command.permissions.channel.join(", ")}`, true)
+          .setFooter(`Prefix - ${prefix}`)
 
-        interaction.send(embed);
+        interaction.send(commandEmbed)
       }
     },
   },
-};
+}

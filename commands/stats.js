@@ -1,7 +1,8 @@
-const { MessageEmbed } = require("discord.js");
-require("moment-duration-format");
-const cpuStat = require("cpu-stat");
-const moment = require("moment");
+const { MessageEmbed } = require("discord.js")
+const moment = require("moment")
+const { version: discordjsVersion } = require("discord.js")
+const { version: botVersion } = require("../package.json")
+const { usagePercent } = require("cpu-stat")
 
 module.exports = {
   name: "stats",
@@ -12,27 +13,15 @@ module.exports = {
     member: [],
   },
   aliases: ["about", "ping", "info"],
-  /**
-   *
-   * @param {import("../structures/DiscordMusicBot")} client
-   * @param {import("discord.js").Message} message
-   * @param {string[]} args
-   * @param {*} param3
-   */
-  run: async (client, message) => {
-    const { version } = require("discord.js");
-    cpuStat.usagePercent(async function (err, percent, seconds) {
-      if (err) {
-        return console.log(err);
-      }
-      const duration = moment
-        .duration(message.client.uptime)
-        .format(" D[d], H[h], m[m]");
+  
+  async run(client, message) {
+    const uptime = moment.duration(client.uptime).format(" D[d], H[h], m[m]")
+    const memoryUsage = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)
 
-      const embed = new MessageEmbed();
-      embed.setColor(client.botconfig.EmbedColor);
-      embed.setTitle(`Stats from \`${client.user.username}\``);
-      embed.addFields(
+    const embed = new MessageEmbed()
+      .setColor(client.botconfig.EmbedColor)
+      .setTitle(`Stats from \`${client.user.username}\``)
+      .addFields(
         {
           name: ":ping_pong: Ping",
           value: `┕\`${Math.round(client.ws.ping)}ms\``,
@@ -40,19 +29,14 @@ module.exports = {
         },
         {
           name: ":clock1: Uptime",
-          value: `┕\`${duration}\``,
+          value: `┕\`${uptime}\``,
           inline: true,
         },
         {
           name: ":file_cabinet: Memory",
-          value: `┕\`${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(
-            2
-          )}mb\``,
+          value: `┕\`${memoryUsage}mb\``,
           inline: true,
-        }
-      );
-
-      embed.addFields(
+        },
         {
           name: ":homes: Servers",
           value: `┕\`${client.guilds.cache.size}\``,
@@ -65,19 +49,17 @@ module.exports = {
         },
         {
           name: ":control_knobs: API Latency",
-          value: `┕\`${message.client.ws.ping}ms\``,
+          value: `┕\`${client.ws.ping}ms\``,
           inline: true,
-        }
-      );
-      embed.addFields(
+        },
         {
           name: ":robot: Version",
-          value: `┕\`v${require("../package.json").version}\``,
+          value: `┕\`v${botVersion}\``,
           inline: true,
         },
         {
           name: ":blue_book: Discord.js",
-          value: `┕\`v${version}\``,
+          value: `┕\`v${discordjsVersion}\``,
           inline: true,
         },
         {
@@ -87,31 +69,28 @@ module.exports = {
         }
       );
 
-      return message.channel.send(embed);
-    });
-  },
-  SlashCommand: {
-    /**
-     *
-     * @param {import("../structures/DiscordMusicBot")} client
-     * @param {import("discord.js").Message} message
-     * @param {string[]} args
-     * @param {*} param3
-     */
-    run: async (client, interaction) => {
-      const { version } = require("discord.js");
+    try {
       cpuStat.usagePercent(async function (err, percent, seconds) {
         if (err) {
-          return console.log(err);
+          return console.log(err)
         }
-        const duration = moment
-          .duration(client.uptime)
-          .format(" D[d], H[h], m[m]");
+        message.channel.send(embed)
+      })
+    } catch (e) {
+      console.log(String(e.stack).bgRed)
+      client.sendError(message.channel, "Something went wrong.")
+    }
+  },
 
-        const embed = new MessageEmbed();
-        embed.setColor(client.botconfig.EmbedColor);
-        embed.setTitle(`Stats from \`${client.user.username}\``);
-        embed.addFields(
+  SlashCommand: {
+    async run(client, interaction) {
+      const uptime = moment.duration(client.uptime).format(" D[d], H[h], m[m]")
+      const memoryUsage = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)
+
+      const embed = new MessageEmbed()
+        .setColor(client.botconfig.EmbedColor)
+        .setTitle(`Stats from \`${client.user.username}\``)
+        .addFields(
           {
             name: ":ping_pong: Ping",
             value: `┕\`${Math.round(client.ws.ping)}ms\``,
@@ -119,19 +98,14 @@ module.exports = {
           },
           {
             name: ":clock1: Uptime",
-            value: `┕\`${duration}\``,
+            value: `┕\`${uptime}\``,
             inline: true,
           },
           {
             name: ":file_cabinet: Memory",
-            value: `┕\`${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(
-              2
-            )}mb\``,
+            value: `┕\`${memoryUsage}mb\``,
             inline: true,
-          }
-        );
-
-        embed.addFields(
+          },
           {
             name: ":homes: Servers",
             value: `┕\`${client.guilds.cache.size}\``,
@@ -146,17 +120,15 @@ module.exports = {
             name: ":control_knobs: API Latency",
             value: `┕\`${client.ws.ping}ms\``,
             inline: true,
-          }
-        );
-        embed.addFields(
+          },
           {
             name: ":robot: Version",
-            value: `┕\`v${require("../package.json").version}\``,
+            value: `┕\`v${botVersion}\``,
             inline: true,
           },
           {
             name: ":blue_book: Discord.js",
-            value: `┕\`v${version}\``,
+            value: `┕\`v${discordjsVersion}\``,
             inline: true,
           },
           {
@@ -164,10 +136,19 @@ module.exports = {
             value: `┕\`${process.version}\``,
             inline: true,
           }
-        );
+        )
 
-        return interaction.send(embed);
-      });
+      try {
+        cpuStat.usagePercent(async function (err, percent, seconds) {
+          if (err) {
+            return console.log(err)
+          }
+          interaction.send(embed)
+        });
+      } catch (e) {
+        console.log(String(e.stack).bgRed)
+        client.sendError(interaction, "Something went wrong.")
+      }
     },
   },
-};
+}

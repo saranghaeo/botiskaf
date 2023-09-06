@@ -1,5 +1,5 @@
-const { MessageEmbed } = require("discord.js");
-const { TrackUtils } = require("erela.js");
+const { MessageEmbed } = require("discord.js")
+const { TrackUtils } = require("erela.js")
 
 module.exports = {
   name: "loop",
@@ -10,25 +10,25 @@ module.exports = {
     member: [],
   },
   aliases: ["l", "repeat"],
-  /**
-   *
-   * @param {import("../structures/DiscordMusicBot")} client
-   * @param {import("discord.js").Message} message
-   * @param {string[]} args
-   * @param {*} param3
-   */
   run: async (client, message, args, { GuildDB }) => {
-    let player = await client.Manager.get(message.guild.id);
+    // Получаем текущего плеера сервера
+    const player = await client.Manager.get(message.guild.id)
+    
+    // Проверяем, есть ли плеер
     if (!player)
       return client.sendTime(
         message.channel,
         "❌ | **Nothing is playing right now...**"
       );
+    
+    // Проверяем, находится ли пользователь в голосовом канале
     if (!message.member.voice.channel)
       return client.sendTime(
         message.channel,
         "❌ | **You must be in a voice channel to use this command!**"
       );
+    
+    // Проверяем, находится ли бот в том же голосовом канале, что и пользователь
     if (
       message.guild.me.voice.channel &&
       message.member.voice.channel.id !== message.guild.me.voice.channel.id
@@ -38,37 +38,39 @@ module.exports = {
         "❌ | **You must be in the same voice channel as me to use this command!**"
       );
 
+    // Включаем или выключаем повторение трека
     if (player.trackRepeat) {
-      player.setTrackRepeat(false);
-      client.sendTime(message.channel, `🔂  \`Disabled\``);
+      player.setTrackRepeat(false)
+      client.sendTime(message.channel, `🔂  \`Disabled\``)
     } else {
-      player.setTrackRepeat(true);
-      client.sendTime(message.channel, `🔂 \`Enabled\``);
+      player.setTrackRepeat(true)
+      client.sendTime(message.channel, `🔂 \`Enabled\``)
     }
   },
   SlashCommand: {
-    /**
-     *
-     * @param {import("../structures/DiscordMusicBot")} client
-     * @param {import("discord.js").Message} message
-     * @param {string[]} args
-     * @param {*} param3
-     */
     run: async (client, interaction, args, { GuildDB }) => {
-      const guild = client.guilds.cache.get(interaction.guild_id);
-      const member = guild.members.cache.get(interaction.member.user.id);
-      const voiceChannel = member.voice.channel;
-      let player = await client.Manager.get(interaction.guild_id);
+      // Получаем сервер и пользователя из взаимодействия
+      const guild = client.guilds.cache.get(interaction.guild_id)
+      const member = guild.members.cache.get(interaction.member.user.id)
+      
+      // Получаем плеер сервера
+      const player = await client.Manager.get(interaction.guild_id)
+      
+      // Проверяем, есть ли плеер
       if (!player)
         return client.sendTime(
           interaction,
           "❌ | **Nothing is playing right now...**"
         );
+      
+      // Проверяем, находится ли пользователь в голосовом канале
       if (!member.voice.channel)
         return client.sendTime(
           interaction,
           "❌ | You must be in a voice channel to use this command."
         );
+      
+      // Проверяем, находится ли бот в том же голосовом канале, что и пользователь
       if (
         guild.me.voice.channel &&
         !guild.me.voice.channel.equals(member.voice.channel)
@@ -78,14 +80,14 @@ module.exports = {
           "❌ | **You must be in the same voice channel as me to use this command!**"
         );
 
+      // Включаем или выключаем повторение трека
       if (player.trackRepeat) {
-        player.setTrackRepeat(false);
-        client.sendTime(interaction, `🔂 \`Disabled\``);
+        player.setTrackRepeat(false)
+        client.sendTime(interaction, `🔂 \`Disabled\``)
       } else {
-        player.setTrackRepeat(true);
-        client.sendTime(interaction, `🔂 \`Enabled\``);
+        player.setTrackRepeat(true)
+        client.sendTime(interaction, `🔂 \`Enabled\``)
       }
-      console.log(interaction.data);
     },
   },
-};
+}

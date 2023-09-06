@@ -1,5 +1,5 @@
-const { MessageEmbed } = require("discord.js");
-const prettyMilliseconds = require("pretty-ms");
+const { MessageEmbed } = require("discord.js")
+const prettyMilliseconds = require("pretty-ms")
 
 module.exports = {
   name: "nowplaying",
@@ -10,95 +10,79 @@ module.exports = {
     member: [],
   },
   aliases: ["np", "nowplaying", "now playing"],
-  /**
-   *
-   * @param {import("../structures/DiscordMusicBot")} client
-   * @param {import("discord.js").Message} message
-   * @param {string[]} args
-   * @param {*} param3
-   */
   run: async (client, message, args, { GuildDB }) => {
-    let player = await client.Manager.get(message.guild.id);
-    if (!player)
+    const player = await client.Manager.get(message.guild.id)
+    if (!player || !player.queue.current)
       return client.sendTime(
         message.channel,
         "❌ | **Nothing is playing right now...**"
       );
 
-    let song = player.queue.current;
-    let QueueEmbed = new MessageEmbed()
+    const song = player.queue.current;
+    const isLiveStream = song.duration === 9223372036854776000
+
+    const QueueEmbed = new MessageEmbed()
       .setAuthor("Currently playing", client.botconfig.IconURL)
       .setColor(client.botconfig.EmbedColor)
       .setDescription(`[${song.title}](${song.uri})`)
       .addField("Requested by", `${song.requester}`, true)
-      .setThumbnail(player.queue.current.displayThumbnail());
+      .setThumbnail(song.displayThumbnail())
 
-    // Check if song duration matches livestream duration
-
-    if (player.queue.current.duration == 9223372036854776000) {
+    if (isLiveStream) {
       QueueEmbed.addField("Duration", "`Live`");
     } else {
+      const progress = client.ProgressBar(player.position, song.duration, 15)
+      const formattedDuration = prettyMilliseconds(song.duration, {
+        colonNotation: true,
+      });
+
       QueueEmbed.addField(
         "Duration",
-        `${
-          client.ProgressBar(player.position, player.queue.current.duration, 15)
-            .Bar
-        } \`${prettyMilliseconds(player.position, {
+        `${progress.Bar} \`${prettyMilliseconds(player.position, {
           colonNotation: true,
-        })} / ${prettyMilliseconds(player.queue.current.duration, {
-          colonNotation: true,
-        })}\``
+        })} / ${formattedDuration}\``
       );
     }
 
-    return message.channel.send(QueueEmbed);
+    return message.channel.send(QueueEmbed)
   },
 
   SlashCommand: {
-    /**
-     *
-     * @param {import("../structures/DiscordMusicBot")} client
-     * @param {import("discord.js").Message} message
-     * @param {string[]} args
-     * @param {*} param3
-     */
     run: async (client, interaction, args, { GuildDB }) => {
-      let player = await client.Manager.get(interaction.guild_id);
-      if (!player.queue.current)
+      const player = await client.Manager.get(interaction.guild_id)
+      if (!player || !player.queue.current)
         return client.sendTime(
           interaction,
           "❌ | **Nothing is playing right now...**"
         );
 
-      let song = player.queue.current;
-      let QueueEmbed = new MessageEmbed()
+      const song = player.queue.current
+      const isLiveStream = song.duration === 9223372036854776000
+
+      const QueueEmbed = new MessageEmbed()
         .setAuthor("Currently playing", client.botconfig.IconURL)
         .setColor(client.botconfig.EmbedColor)
         .setDescription(`[${song.title}](${song.uri})`)
         .addField("Requested by", `${song.requester}`, true)
-        .setThumbnail(player.queue.current.displayThumbnail());
+        .setThumbnail(song.displayThumbnail())
 
-      // Check if song duration matches livestream duration
-
-      if (player.queue.current.duration == 9223372036854776000) {
-        QueueEmbed.addField("Duration", "`Live`");
+      if (isLiveStream) {
+        QueueEmbed.addField("Duration", "`Live`")
       } else {
+        const progress = client.ProgressBar(player.position, song.duration, 15)
+        const formattedDuration = prettyMilliseconds(song.duration, {
+          colonNotation: true,
+        })
+
         QueueEmbed.addField(
           "Duration",
-          `${
-            client.ProgressBar(
-              player.position,
-              player.queue.current.duration,
-              15
-            ).Bar
-          } \`${prettyMilliseconds(player.position, {
+          `${progress.Bar} \`${prettyMilliseconds(player.position, {
             colonNotation: true,
-          })} / ${prettyMilliseconds(player.queue.current.duration, {
-            colonNotation: true,
-          })}\``
-        );
+          })} / ${formattedDuration}\``
+        )
       }
-      return interaction.send(QueueEmbed);
+
+      return interaction.send(QueueEmbed)
     },
   },
-};
+}
