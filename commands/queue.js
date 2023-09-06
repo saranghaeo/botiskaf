@@ -1,7 +1,6 @@
-const { MessageEmbed } = require("discord.js");
-const _ = require("lodash");
-const prettyMilliseconds = require("pretty-ms");
-let d;
+const { MessageEmbed } = require("discord.js")
+const prettyMilliseconds = require("pretty-ms")
+const _ = require("lodash")
 
 module.exports = {
   name: "queue",
@@ -12,15 +11,9 @@ module.exports = {
     member: [],
   },
   aliases: ["q"],
-  /**
-   *
-   * @param {import("../structures/DiscordMusicBot")} client
-   * @param {import("discord.js").Message} message
-   * @param {string[]} args
-   * @param {*} param3
-   */
   run: async (client, message, args, { GuildDB }) => {
-    let player = await client.Manager.get(message.guild.id);
+    const player = await client.Manager.get(message.guild.id)
+
     if (!player)
       return client.sendTime(
         message.channel,
@@ -28,129 +21,116 @@ module.exports = {
       );
 
     if (!player.queue || !player.queue.length || player.queue === 0) {
-      let QueueEmbed = new MessageEmbed()
+      const currentTrack = player.queue.current
+
+      const QueueEmbed = new MessageEmbed()
         .setAuthor("Currently playing", client.botconfig.IconURL)
         .setColor(client.botconfig.EmbedColor)
-        .setDescription(
-          `[${player.queue.current.title}](${player.queue.current.uri})`
-        )
-        .addField("Requested by", `${player.queue.current.requester}`, true)
-        .setThumbnail(player.queue.current.displayThumbnail());
+        .setDescription(`[${currentTrack.title}](${currentTrack.uri})`)
+        .addField("Requested by", `${currentTrack.requester}`, true)
+        .setThumbnail(currentTrack.displayThumbnail())
 
-      // Check if the duration matches the duration of a livestream
-      if (player.queue.current.duration == 9223372036854776000) {
-        QueueEmbed.addField("Duration", `\`Live\``, true);
+      if (currentTrack.duration == 9223372036854776000) {
+        QueueEmbed.addField("Duration", "`Live`", true)
       } else {
+        const durationProgress = client.ProgressBar(
+          player.position,
+          currentTrack.duration,
+          15
+        );
+
         QueueEmbed.addField(
           "Duration",
-          `${
-            client.ProgressBar(
-              player.position,
-              player.queue.current.duration,
-              15
-            ).Bar
-          } \`[${prettyMilliseconds(player.position, {
+          `${durationProgress.Bar} \`${prettyMilliseconds(
+            player.position,
+            { colonNotation: true }
+          )} / ${prettyMilliseconds(currentTrack.duration, {
             colonNotation: true,
-          })} / ${prettyMilliseconds(player.queue.current.duration, {
-            colonNotation: true,
-          })}]\``
-        );
+          })}\``,
+          true
+        )
       }
 
-      return message.channel.send(QueueEmbed);
+      return message.channel.send(QueueEmbed)
     }
 
-    let Songs = player.queue.map((t, index) => {
-      t.index = index;
-      return t;
-    });
+    const Songs = player.queue.map((track, index) => {
+      track.index = index;
+      return track
+    })
 
-    let ChunkedSongs = _.chunk(Songs, 10); //How many songs to show per-page
+    const ChunkedSongs = _.chunk(Songs, 10) // How many songs to show per-page
 
-    let Pages = ChunkedSongs.map((Tracks) => {
-      let SongsDescription = Tracks.map((t) => {
-        let d;
-        // Check if duration matches duration of livestream
-        if (t.duration == 9223372036854776000) {
-          d = "Live";
-        } else {
-          d = prettyMilliseconds(t.duration, { colonNotation: true });
-        }
-        return `\`${t.index + 1}.\` [${t.title}](${
-          t.uri
-        }) \n\`${d}\` **|** Requested by: ${t.requester}\n`;
-      }).join("\n");
+    const Pages = ChunkedSongs.map((Tracks) => {
+      const SongsDescription = Tracks
+        .map((track) => {
+          let duration
+          if (track.duration == 9223372036854776000) {
+            duration = "Live"
+          } else {
+            duration = prettyMilliseconds(track.duration, {
+              colonNotation: true,
+            });
+          }
 
-      let Embed = new MessageEmbed()
+          return `\`${track.index + 1}.\` [${track.title}](${track.uri}) \n\`${duration}\` **|** Requested by: ${track.requester}\n`
+        })
+        .join("\n");
+
+      const Embed = new MessageEmbed()
         .setAuthor("Queue", client.botconfig.IconURL)
         .setColor(client.botconfig.EmbedColor)
         .setDescription(
           `**Currently Playing:** \n[${player.queue.current.title}](${player.queue.current.uri}) \n\n**Up Next:** \n${SongsDescription}\n\n`
         )
-        .addField("Total songs: \n", `\`${player.queue.totalSize - 1}\``, true);
+        .addField(
+          "Total songs: \n",
+          `\`${player.queue.totalSize - 1}\``,
+          true
+        );
 
-      // Check if duration matches duration of livestream
-      if (player.queue.duration >= 9223372036854776000) {
-        d = "Live";
+      const queueDuration = player.queue.duration >= 9223372036854776000
+        ? "Live"
+        : prettyMilliseconds(player.queue.duration, { colonNotation: true })
+
+      Embed
+        .addField("Total length: \n", `\`${queueDuration}\``, true)
+        .addField("Requested by:", `${player.queue.current.requester}`, true)
+
+      const currentTrack = player.queue.current
+      if (currentTrack.duration == 9223372036854776000) {
+        Embed.addField("Current song duration:", "`Live`")
       } else {
-        d = prettyMilliseconds(player.queue.duration, { colonNotation: true });
-      }
+        const durationProgress = client.ProgressBar(
+          player.position,
+          currentTrack.duration,
+          15
+        );
 
-      Embed.addField("Total length: \n", `\`${d}\``, true).addField(
-        "Requested by:",
-        `${player.queue.current.requester}`,
-        true
-      );
-
-      if (player.queue.current.duration == 9223372036854776000) {
-        Embed.addField("Current song duration:", "`Live`");
-      } else {
         Embed.addField(
           "Current song duration:",
-          `${
-            client.ProgressBar(
-              player.position,
-              player.queue.current.duration,
-              15
-            ).Bar
-          } \`${prettyMilliseconds(player.position, {
-            colonNotation: true,
-          })} / ${prettyMilliseconds(player.queue.current.duration, {
+          `${durationProgress.Bar} \`${prettyMilliseconds(
+            player.position,
+            { colonNotation: true }
+          )} / ${prettyMilliseconds(currentTrack.duration, {
             colonNotation: true,
           })}\``
         );
       }
 
-      Embed.setThumbnail(player.queue.current.displayThumbnail());
+      Embed.setThumbnail(player.queue.current.displayThumbnail())
 
-      return Embed;
+      return Embed
     });
 
     if (!Pages.length || Pages.length === 1)
-      return message.channel.send(Pages[0]);
-    else client.Pagination(message, Pages);
+      return message.channel.send(Pages[0])
+    else client.Pagination(message, Pages)
   },
   SlashCommand: {
-    /*
-    options: [
-      {
-          name: "page",
-          value: "[page]",
-          type: 4,
-          required: false,
-          description: "Enter the page of the queue you would like to view",
-      },
-  ],
-  */
-    /**
-     *
-     * @param {import("../structures/DiscordMusicBot")} client
-     * @param {import("discord.js").Message} message
-     * @param {string[]} args
-     * @param {*} param3
-     */
     run: async (client, interaction, args, { GuildDB }) => {
-      let player = await client.Manager.get(interaction.guild_id);
+      const player = await client.Manager.get(interaction.guild_id)
+
       if (!player)
         return client.sendTime(
           interaction,
@@ -158,57 +138,63 @@ module.exports = {
         );
 
       if (!player.queue || !player.queue.length || player.queue === 0) {
-        let QueueEmbed = new MessageEmbed()
+        const currentTrack = player.queue.current
+
+        const QueueEmbed = new MessageEmbed()
           .setAuthor("Currently playing", client.botconfig.IconURL)
           .setColor(client.botconfig.EmbedColor)
-          .setDescription(
-            `[${player.queue.current.title}](${player.queue.current.uri})`
-          )
-          .addField("Requested by", `${player.queue.current.requester}`, true)
-          .setThumbnail(player.queue.current.displayThumbnail());
-        if (player.queue.current.duration == 9223372036854776000) {
-          QueueEmbed.addField("Duration", `\`Live\``, true);
+          .setDescription(`[${currentTrack.title}](${currentTrack.uri})`)
+          .addField("Requested by", `${currentTrack.requester}`, true)
+          .setThumbnail(currentTrack.displayThumbnail())
+
+        if (currentTrack.duration == 9223372036854776000) {
+          QueueEmbed.addField("Duration", "`Live`", true)
         } else {
+          const durationProgress = client.ProgressBar(
+            player.position,
+            currentTrack.duration,
+            15
+          );
+
           QueueEmbed.addField(
             "Duration",
-            `${
-              client.ProgressBar(
-                player.position,
-                player.queue.current.duration,
-                15
-              ).Bar
-            } \`[${prettyMilliseconds(player.position, {
+            `${durationProgress.Bar} \`${prettyMilliseconds(
+              player.position,
+              { colonNotation: true }
+            )} / ${prettyMilliseconds(currentTrack.duration, {
               colonNotation: true,
-            })} / ${prettyMilliseconds(player.queue.current.duration, {
-              colonNotation: true,
-            })}]\``
+            })}\``,
+            true
           );
         }
-        return interaction.send(QueueEmbed);
+
+        return interaction.send(QueueEmbed)
       }
 
-      let Songs = player.queue.map((t, index) => {
-        t.index = index;
-        return t;
+      const Songs = player.queue.map((track, index) => {
+        track.index = index
+        return track
       });
 
-      let ChunkedSongs = _.chunk(Songs, 10); //How many songs to show per-page
+      const ChunkedSongs = _.chunk(Songs, 10) // How many songs to show per-page
 
-      let Pages = ChunkedSongs.map((Tracks) => {
-        let SongsDescription = Tracks.map((t) => {
-          let d;
-          // Check if duration matches duration of livestream
-          if (t.duration == 9223372036854776000) {
-            d = "Live";
-          } else {
-            d = prettyMilliseconds(t.duration, { colonNotation: true });
-          }
-          return `\`${t.index + 1}.\` [${t.title}](${
-            t.uri
-          }) \n\`${d}\` **|** Requested by: ${t.requester}\n`;
-        }).join("\n");
+      const Pages = ChunkedSongs.map((Tracks) => {
+        const SongsDescription = Tracks
+          .map((track) => {
+            let duration;
+            if (track.duration == 9223372036854776000) {
+              duration = "Live"
+            } else {
+              duration = prettyMilliseconds(track.duration, {
+                colonNotation: true,
+              })
+            }
 
-        let Embed = new MessageEmbed()
+            return `\`${track.index + 1}.\` [${track.title}](${track.uri}) \n\`${duration}\` **|** Requested by: ${track.requester}\n`
+          })
+          .join("\n")
+
+        const Embed = new MessageEmbed()
           .setAuthor("Queue", client.botconfig.IconURL)
           .setColor(client.botconfig.EmbedColor)
           .setDescription(
@@ -218,50 +204,47 @@ module.exports = {
             "Total songs: \n",
             `\`${player.queue.totalSize - 1}\``,
             true
-          );
+          )
 
-        // Check if duration matches duration of livestream
-        if (player.queue.duration >= 9223372036854776000) {
-          d = "Live";
-        } else {
-          d = prettyMilliseconds(player.queue.duration, {
+        const queueDuration = player.queue.duration >= 9223372036854776000
+          ? "Live"
+          : prettyMilliseconds(player.queue.duration, {
             colonNotation: true,
-          });
-        }
+          })
 
-        Embed.addField("Total length: \n", `\`${d}\``, true).addField(
-          "Requested by:",
-          `${player.queue.current.requester}`,
-          true
-        );
+        Embed
+          .addField("Total length: \n", `\`${queueDuration}\``, true)
+          .addField("Requested by:", `${player.queue.current.requester}`, true);
 
-        if (player.queue.current.duration == 9223372036854776000) {
+        const currentTrack = player.queue.current;
+        if (currentTrack.duration == 9223372036854776000) {
           Embed.addField("Current song duration:", "`Live`");
         } else {
+          const durationProgress = client.ProgressBar(
+            player.position,
+            currentTrack.duration,
+            15
+          )
+
           Embed.addField(
             "Current song duration:",
-            `${
-              client.ProgressBar(
-                player.position,
-                player.queue.current.duration,
-                15
-              ).Bar
-            } \`${prettyMilliseconds(player.position, {
-              colonNotation: true,
-            })} / ${prettyMilliseconds(player.queue.current.duration, {
+            `${durationProgress.Bar} \`${prettyMilliseconds(
+              player.position,
+              { colonNotation: true }
+            )} / ${prettyMilliseconds(currentTrack.duration, {
               colonNotation: true,
             })}\``
-          );
+          )
         }
 
-        Embed.setThumbnail(player.queue.current.displayThumbnail());
+        Embed.setThumbnail(player.queue.current.displayThumbnail())
 
-        return Embed;
+        return Embed
       });
 
       if (!Pages.length || Pages.length === 1)
-        return interaction.send(Pages[0]);
-      else client.Pagination(interaction, Pages);
+        return interaction.send(Pages[0])
+      else client.Pagination(interaction, Pages)
     },
   },
-};
+}
